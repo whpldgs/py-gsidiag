@@ -1,0 +1,38 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module _readconvobs ! in 
+    interface  ! in :_readconvobs
+        subroutine get_num_convobs(obsfile,num_obs_tot,endian) ! in :_readconvobs:readconvobs.f90
+            character*500 intent(in) :: obsfile
+            integer intent(out) :: num_obs_tot
+            character*6, optional,intent(in) :: endian
+        end subroutine get_num_convobs
+        subroutine get_convobs_data(obsfile,nobs_max,h_x,x_obs,x_err,x_lon,x_lat,x_press,x_time,x_code,x_errorig,x_type,x_use,x_station_id,x_stnelev,endian) ! in :_readconvobs:readconvobs.f90
+            character*500 intent(in) :: obsfile
+            integer :: nobs_max
+            double precision dimension(nobs_max),intent(out),depend(nobs_max) :: h_x
+            double precision dimension(nobs_max),intent(out),depend(nobs_max) :: x_obs
+            double precision dimension(nobs_max),intent(out),depend(nobs_max) :: x_err
+            double precision dimension(nobs_max),intent(out),depend(nobs_max) :: x_lon
+            double precision dimension(nobs_max),intent(out),depend(nobs_max) :: x_lat
+            double precision dimension(nobs_max),intent(out),depend(nobs_max) :: x_press
+            double precision dimension(nobs_max),intent(out),depend(nobs_max) :: x_time
+            integer dimension(nobs_max),intent(out),depend(nobs_max) :: x_code
+            double precision dimension(nobs_max),intent(out),depend(nobs_max) :: x_errorig
+            integer dimension(nobs_max,4),intent(out),depend(nobs_max) :: x_type
+            integer dimension(nobs_max),intent(out),depend(nobs_max) :: x_use
+            integer dimension(nobs_max,9),intent(out),depend(nobs_max) :: x_station_id
+            double precision dimension(nobs_max),intent(out),depend(nobs_max) :: x_stnelev
+            character*6, optional,intent(in) :: endian
+        end subroutine get_convobs_data
+        subroutine strtoarr(strin,chararr,n_str) ! in :_readconvobs:readconvobs.f90
+            character*n_str intent(in) :: strin
+            integer dimension(n_str + 1),intent(out),depend(n_str) :: chararr
+            integer intent(in) :: n_str
+        end subroutine strtoarr
+    end interface 
+end python module _readconvobs
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/
