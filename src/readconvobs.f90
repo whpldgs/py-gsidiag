@@ -99,8 +99,8 @@ subroutine get_num_convobs(obsfile,num_obs_tot,endian)
     write(6,100) 'gps',nobsgps
     write(6,100) 'pw',nobspw
     write(6,100) 'dw',nobsdw
-    write(6,100) 'srw',nobsrw
-    write(6,100) 'rw',nobssrw
+    write(6,100) 'srw',nobssrw
+    write(6,100) 'rw',nobsrw
     write(6,100) 'tcp',nobstcp
 100 format(2x,a3,2x,i9,2x,i9)
     close(iunit)
