@@ -1,41 +1,52 @@
+#!/usr/bin/env python
+
 import numpy as _np
 import _readconvobs
 import _readsatobs
-__version__ = '0.0.1'
 
 
 class GSIdiag(object):
 
-    def __init__(self, filename, endian='native'):
+    def __init__(self, fname, diag_type, endian='native'):
+        '''
+        Initialize a GSI diagnostic object, by reading it
+        INPUT:
+            fname  : name of the diagnostic file
+            dtype  : type of the diagnostic file e.g. conv / rad
+            endian : endian-ness of the file
+        RESULT:
+            self   : GSIdiag object containing the contents of the file
+        '''
 
-        self.filename = filename
+        self.filename = fname
         self.endian = endian
 
-        # Infer diag_type from quering the file itself
-        try:
-            npred, nobs = _readsatobs.get_num_satobs(filename, endian=endian)
-            self.npred, self.nobs = npred, nobs
+        # set diagnostic type
+        if diag_type.upper() in ['CONV', 'CONVENTIONAL']:
+            self.diag_type = 'CONVENTIONAL'
+        elif diag_type.upper() in ['RAD', 'RADIANCE']:
             self.diag_type = 'RADIANCE'
-        except:
-            try:
-                nobs = _readconvobs.get_num_convobs(filename, endian=endian)
-                self.nobs = nobs
-                self.diag_type = 'CONVENTIONAL'
-            except:
-                raise Exception('Unrecognizable type of diagnostic file %s' % self.filename)
+        else:
+            raise Exception('Unrecognizable diagnostic file type %s' % diag_type)
 
-        # Read the file as part of initialization
-        if self.diag_type in ['CONV', 'CONVENTIONAL']:
-            self._read_convobs()
-        elif self.diag_type in ['RAD', 'RADIANCE']:
+        if self.diag_type in ['RADIANCE']:
+            npred, nobs = _readsatobs.get_num_satobs(fname, endian=endian)
+            self.npred, self.nobs = npred, nobs
             self._read_radobs()
+        elif self.diag_type in ['CONVENTIONAL']:
+            nobs = _readconvobs.get_num_convobs(fname, endian=endian)
+            self.nobs = nobs
+            self._read_convobs()
 
         return
 
 
     def print_info(self):
+        '''
+        Print the contents of the GSI diagnostic object
+        '''
 
-        print '%s contains...' % self.filename
+        print '%s is a %s diagnostic file and contains ...' % (self.filename, self.diag_type)
         print
         keys = self.__dict__.keys()
         print ', '.join(str(x) for x in keys)
@@ -45,6 +56,9 @@ class GSIdiag(object):
 
 
     def _read_convobs(self):
+        '''
+        Read the data from the conventional diagnostic file during initialization
+        '''
 
         h_x, x_obs, x_err, x_lon, x_lat, x_press, x_time, \
             x_code, x_errorig, x_type, x_use, x_station_id, x_stnelev =\
@@ -72,6 +86,9 @@ class GSIdiag(object):
 
 
     def _read_radobs(self):
+        '''
+        Read the data from the radiance diagnostic file during initialization
+        '''
 
         h_x, h_xnobc, x_obs, x_err, x_lon, x_lat, x_time, \
             x_channum, x_errorig, x_biaspred, x_use, x_qcmark,  \
@@ -99,19 +116,13 @@ class GSIdiag(object):
         return
 
 
-    def get_data(self, qty, *args, **kwargs):
+    def _get_data(self, qty, indx):
         '''
         Helper function to get data.
         '''
 
         ndim, val = None, None
         exec('ndim = len(self.%s.shape)' % qty)
-
-        # First get the index of the desired data
-        if self.diag_type in ['CONV', 'CONVENTIONAL']:
-            indx = self._get_convdiag_indices(*args, **kwargs)
-        elif self.diag_type in ['RAD', 'RADIANCE']:
-            indx = self._get_raddiag_indices(*args, **kwargs)
 
         if ndim == 1:
             exec('val = self.%s[indx]' % qty)
@@ -121,28 +132,49 @@ class GSIdiag(object):
         return val
 
 
-    def _get_convdiag_indices(self,obtype,code=None,used=None):
+    def get_data_conv(self, qty, obtype, used=None, code=None):
+        '''
+        Given parameters, get the data from a conventional diagnostic file
+        INPUT:
+            qty    : diagnostic quantity to extract e.g. hx, station_ids, etc
+            obtype : observation type e.g. 'ps', 'u', 'v', 't' etc
+            used   : qc flag (default: None) e.g. 0, 1
+            code   : KX (default: None)
+        OUTPUT:
+            val    : requested data
+        '''
+
+        assert self.diag_type == 'CONVENTIONAL', ('This is not a CONVENTIONAL diagnostic file')
+
+        indx = self._get_indx_conv(obtype, code=code, used=used)
+        val = self._get_data(qty, indx)
+
+        return val
+
+
+    def _get_indx_conv(self, obtype, used=None, code=None):
         '''
         Given parameters, get the indicies of observation locations from a conventional diagnostic file
         INPUT:
             obtype : observation type e.g. 'ps', 'u', 'v', 't' etc
-            code   : KX (default: None)
             used   : qc flag (default: None) e.g. 0, 1
+            code   : KX (default: None)
         OUTPUT:
-            index  : indices of the requested data in the file
+            indx   : indices of the requested data in the file
         '''
 
         indx = self.obtype == obtype.rjust(3)
-        if code != None: indx = _np.logical_and(indx, self.code==code)
         if used != None: indx = _np.logical_and(indx, self.used==used)
+        if code != None: indx = _np.logical_and(indx, self.code==code)
 
         return indx
 
 
-    def _get_raddiag_indices(self,ichan,used=None,oberr=None,water=False,land=False,ice=False,snow=False,snowice=False):
+    def get_data_rad(self, qty, ichan, used=None, oberr=None, water=False, land=False, ice=False, snow=False, snowice=False):
         '''
-        Given parameters, get the indicies of observation locations from a radiance diagnostic file
+        Given parameters, get the data from a radiance diagnostic file
         INPUT:
+            qty    : diagnostic quantity to extract e.g. hx, biaspred, etc
             ichan  : channel number
             used   : qc flag (default: None) e.g. 0, 1
             oberr  : filter through observation error (default: None) e.g. 1.e9
@@ -152,7 +184,32 @@ class GSIdiag(object):
             snow   : filter observations over snow (default: False)
             snowice: filter observations over snowice (default: False)
         OUTPUT:
-            index  : indices of the requested data in the file
+            val    : requested data
+        '''
+
+        assert self.diag_type == 'RADIANCE', ('This is not a RADIANCE diagnostic file')
+
+        indx = self._get_indx_rad(ichan, used=used, oberr=oberr, water=water, land=land, ice=ice, snow=snow, snowice=snowice)
+        val = self._get_data(qty, indx)
+
+        return val
+
+
+    def _get_indx_rad(self, ichan, used=None, oberr=None, water=False, land=False, ice=False, snow=False, snowice=False):
+        '''
+        Given parameters, get the indicies of observation locations from a radiance diagnostic file
+        INPUT:
+            qty    : diagnostic quantity to extract e.g. hx, station_ids, etc
+            ichan  : channel number
+            used   : qc flag (default: None) e.g. 0, 1
+            oberr  : filter through observation error (default: None) e.g. 1.e9
+            water  : filter observations over water (default: False)
+            land   : filter observations over land (default: False)
+            ice    : filter observations over ice (default: False)
+            snow   : filter observations over snow (default: False)
+            snowice: filter observations over snowice (default: False)
+        OUTPUT:
+            indx   : indices of the requested data in the file
         '''
 
         indx = self.channel == ichan
