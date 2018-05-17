@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import numpy as _np
 import _readconvobs
 import _readsatobs
