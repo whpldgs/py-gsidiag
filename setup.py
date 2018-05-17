@@ -8,10 +8,10 @@ ext_diag_sat = Extension(name     = '_readsatobs',
 
 if __name__ == "__main__":
     setup(name = 'py-gsidiag',
-          version           = "0.9.3",
+          version           = "1.0.0",
           description       = "Python interface to GSI binary diagnostic files",
           author            = "Rahul Mahajan",
-          author_email      = "rahul.mahajan@noaa.gov",
+          author_email      = "aerorahul@users.noreply.github.com",
           url               = "http://github.com/aerorahul/py-gsidiag",
           ext_modules       = [ext_diag_conv, ext_diag_sat],
           packages          = ['gsidiag'],
