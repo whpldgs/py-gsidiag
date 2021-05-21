@@ -75,9 +75,9 @@ class GSIdiag(object):
         self.oberr_orig = x_errorig
         self.used = x_use
         self.obtype = \
-            _np.array((x_type.tostring()).replace('\x00', '')[:-1].split('|'))
+            _np.array((x_type.tostring()).decode().replace('\x00', '')[:-1].split('|'))
         self.station_ids =\
-            _np.array((x_station_id.tostring()).replace(
+            _np.array((x_station_id.tostring()).decode().replace(
                 '\x00', '')[:-1].split('|'))
 
         return
@@ -120,13 +120,16 @@ class GSIdiag(object):
         '''
 
         ndim, val = None, None
-        exec('ndim = len(self.%s.shape)' % qty)
+        _locals = locals()
+        exec('ndim = len(self.%s.shape)' % qty, globals(), _locals)
+        ndim = _locals['ndim']
 
         if ndim == 1:
-            exec('val = self.%s[indx]' % qty)
+            exec('val = self.%s[indx]' % qty, globals(), _locals)
         elif ndim > 1:
-            exec('val = self.%s[:,indx]' % qty)
+            exec('val = self.%s[:,indx]' % qty, globals(), _locals)
 
+        val =  _locals['val']
         return val
 
 
