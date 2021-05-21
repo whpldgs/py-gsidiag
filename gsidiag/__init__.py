@@ -1,3 +1,4 @@
+import sys
 import numpy as _np
 import _readconvobs
 import _readsatobs
@@ -44,11 +45,11 @@ class GSIdiag(object):
         Print the contents of the GSI diagnostic object
         '''
 
-        print '%s is a %s diagnostic file and contains ...' % (self.filename, self.diag_type)
+        print('%s is a %s diagnostic file and contains ...' % (self.filename, self.diag_type))
         print
         keys = self.__dict__.keys()
-        print ', '.join(str(x) for x in keys)
-        print
+        print(', '.join(str(x) for x in keys))
+        print('')
 
         return
 
@@ -74,11 +75,18 @@ class GSIdiag(object):
         self.code = x_code
         self.oberr_orig = x_errorig
         self.used = x_use
-        self.obtype = \
-            _np.array((x_type.tostring()).decode().replace('\x00', '')[:-1].split('|'))
-        self.station_ids =\
-            _np.array((x_station_id.tostring()).decode().replace(
-                '\x00', '')[:-1].split('|'))
+        if sys.version_info[0] >= 3:
+            self.obtype = \
+                _np.array((x_type.tostring()).decode().replace('\x00', '')[:-1].split('|'))
+            self.station_ids =\
+                _np.array((x_station_id.tostring()).decode().replace(
+                    '\x00', '')[:-1].split('|'))
+        elif sys.version_info[0] < 3:
+            self.obtype = \
+                _np.array((x_type.tostring()).replace('\x00', '')[:-1].split('|'))
+            self.station_ids =\
+                _np.array((x_station_id.tostring()).replace(
+                    '\x00', '')[:-1].split('|'))
 
         return
 
@@ -120,16 +128,26 @@ class GSIdiag(object):
         '''
 
         ndim, val = None, None
-        _locals = locals()
-        exec('ndim = len(self.%s.shape)' % qty, globals(), _locals)
-        ndim = _locals['ndim']
+        if sys.version_info[0] >= 3:
+            _locals = locals()
+            exec('ndim = len(self.%s.shape)' % qty, globals(), _locals)
+            ndim = _locals['ndim']
 
-        if ndim == 1:
-            exec('val = self.%s[indx]' % qty, globals(), _locals)
-        elif ndim > 1:
-            exec('val = self.%s[:,indx]' % qty, globals(), _locals)
+            if ndim == 1:
+                exec('val = self.%s[indx]' % qty, globals(), _locals)
+            elif ndim > 1:
+                exec('val = self.%s[:,indx]' % qty, globals(), _locals)
 
-        val =  _locals['val']
+            val =  _locals['val']
+        
+        elif sys.version_info[0] < 3:
+            exec('ndim = len(self.%s.shape)' % qty)
+
+            if ndim == 1:                           
+                exec('val = self.%s[indx]' % qty)   
+            elif ndim > 1:                          
+                exec('val = self.%s[:,indx]' % qty) 
+        
         return val
 
 
